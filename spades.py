@@ -29,11 +29,13 @@ class GAME_STATES(Enum):
     DEALING = 2
     BETTING = 3
     PLAYING = 4
-    POSTGAME = 5
+    SCORING = 5
+    POSTGAME = 6
 
 class PLAYER_ACTIONS(Enum):
     DEAL = 1
     BET = 2
+    PLAY = 3
 
 class Card:
     def __init__(self, id):
@@ -52,21 +54,6 @@ class Card:
 
     def __repr__(self):
         return self.rank.name + " of " + self.suit.name
-
-    def getSuitName(self):
-        return self.suit.name
-
-    def getRankName(self):
-        return self.rank.name
-
-    def getValue(self):
-        value = self.rank.value
-        if value < 10:
-            return value
-        elif value >= 10:
-            return 10
-        else:
-            return -1
 
 class Deck:
     def __init__(self):
@@ -109,7 +96,21 @@ class Player:
     
     # Return and remove card from user hand
     def playCard(self, cardIndex):
-        return self.hand.pop(cardIndex - 1)
+        card = self.hand.pop(cardIndex - 1)
+        self.lastCardPlayed = card.id
+        return card
+
+    # Return a card without removing it from user hand
+    def previewCard(self, cardIndex):
+        return self.hand[cardIndex - 1]
+
+    # Number of cards of a suit in user hand
+    def hasSuit(self, suit):
+        count = 0
+        for c in self.hand:
+            if c.suit == suit:
+                count = count + 1
+        return count
 
 class Team:
     def __init__(self, name, players):
@@ -134,9 +135,13 @@ class Game:
         self.dealer = 1 # dealer is first in rotation
         self.whoseTurn = 2 # person after dealer bets and plays right after dealer
         self.round = 1 # tally of round number for current set (13 total rounds per scored set)
-        self.numBets = 0 # number of bets placed in current set (reset to 0 after score tally)
+        self.bets = 0 # number of bets placed in current set (reset to 0 after score tally)
         self.betsTotal = 0 # tally of total bets users made in current set (13 total books possible)
+        self.spadesBroken = False
+        self.pileSuit = 0
+
         self.newDeck()
+        self.newPile() # pile is list of up to 4 cards currently in play
         self.assignUserTurns()
         self.start()
 
@@ -147,12 +152,80 @@ class Game:
     def newDeck(self):
         self.deck = Deck()
 
+    def newPile(self):
+        self.pile = []
+
     def deal(self):
         while len(self.deck.stack) > 0:
             p = self.getPlayerByTurnOrder(self.whoseTurn)
             p.addToHand(self.deck.draw())
             self.incrementWhoseTurn()
         self.incrementDealer()
+
+    def playToPile(self, user, cardIndex):
+        card = user.previewCard(cardIndex)
+
+        # if first card
+        if len(self.pile) == 0:
+            if (card.suit == CARD_SUITS.SPADE) and (not self.spadesBroken):
+                # notify spades not broken
+                return 0
+            else:
+                self.pile.append(card)
+                self.pileSuit = card.CARD_SUITS.SPADE
+                return 1
+
+        # if not first card
+        else:
+            if card.suit == self.pileSuit:
+                self.pile.append(card)
+                return 1
+            else:
+                numOfSuit = user.hasSuit(self.pileSuit)
+                # If they dont have trump suit let them play
+                if numOfSuit == 0:
+                    self.pile.append(card)
+
+                    # If spades make sure report broken and change pile suit
+                    if card.suit == CARD_SUITS.SPADE:
+                        self.pileSuit = CARD_SUITS.SPADE
+                        self.spadesBroken = True
+
+                    return 1
+                else:
+                    # Notify they must play a different card
+                    return 0
+
+    def evaluatePile(self):
+        # if 4
+
+        # get rid of all suits lower than trump suit
+        suited = []
+        for c in self.pile:
+            if c.suit == self.pileSuit:
+                suited.append(c)
+        
+        # pick biggest value card
+        highest = 0
+        for c in suited:
+            if c.rank.value > highest:
+                winningCard = c
+                highest = c.rank.value
+
+        # send books to winner
+        pileIndex = self.pile.index(winningCard)
+        winnerIndex  = pileIndex + self.whoseTurn
+        if winnerIndex > 4:
+            winnerIndex = winnerIndex - 4
+
+        winner = self.getPlayerByTurnOrder(winnerIndex)
+        winner.addBook(self.pile)
+        self.newPile()
+
+        self.round = self.round + 1
+
+    def evaluateBooks(self):
+        pass
 
     def assignUserTurns(self):
         self.teams[0].players[0].turnOrder = 1
@@ -217,23 +290,24 @@ class Game:
                 return 0
         
         elif action == PLAYER_ACTIONS.BET:
+            currentBet = actionArg
             if self.state == GAME_STATES.BETTING:
                 if player.turnOrder == self.whoseTurn:
-                    if (self.betsTotal + actionArg) <= 13:
-                        player.makeBet(actionArg)
-                        self.numBets = self.numBets + 1
+                    if (self.betsTotal + currentBet) <= 13:
+                        player.makeBet(currentBet)
+                        self.bets = self.bets + 1
                         self.incrementWhoseTurn()
 
                     else:
                         # notify that bet exceeds 13
                         return 0
 
-                    if self.numBets == 4:
+                    if self.bets == 4:
                         self.requestStateChange(GAME_STATES.PLAYING)
                         # notify all of playing state
                         return 1
 
-                    elif (self.numBets > 0) and (self.numBets <= 3):
+                    elif (self.bets > 0) and (self.bets <= 3):
                         # notifyall of bet and whose bet it is
                         return 1
 
@@ -245,6 +319,40 @@ class Game:
                     return 0
             else:
                 # notify cant perform action in current state
+                return 0
+
+        elif action == PLAYER_ACTIONS.PLAY:
+            cardIndex = actionArg
+            if self.state == GAME_STATES.PLAYING:
+                if player.turnOrder == self.whoseTurn:
+                    if len(self.pile) < 3:
+                        if self.playToPile(player, cardIndex):
+                            player.playCard(cardIndex)
+                            self.incrementWhoseTurn()
+                            return 1
+                        else:
+                            return 0
+
+                    elif len(self.pile == 3):
+                        if self.playToPile(player, cardIndex):
+                            player.playCard(cardIndex)
+                            self.incrementWhoseTurn()
+                            self.evaluatePile()
+
+                            if self.round >= 13:
+                                self.requestStateChange(GAME_STATES.SCORING)
+                                self.evaluateBooks()
+
+                            return 1
+
+                    else:
+                        # notify of pile size error
+                        return 0
+                else:
+                    # notify not their turn
+                    return 0
+            else:
+                # notify cant do action in current state
                 return 0
         else:
             # notify of invalid action
