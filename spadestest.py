@@ -25,3 +25,4 @@ g.playerAction(u2, spades.PLAYER_ACTIONS.BET, 2)
 # Greyson bets 4, Louis bets 4
 g.playerAction(u4, spades.PLAYER_ACTIONS.BET, 4)
 g.playerAction(u1, spades.PLAYER_ACTIONS.BET, 4)
+
