@@ -17,12 +17,16 @@ g = spades.Game([t1, t2], 300)
 g.playerAction(u1, spades.PLAYER_ACTIONS.DEAL, 1)
 
 # Steven bets 3 books
-g.playerAction(u3, spades.PLAYER_ACTIONS.BET, 3)
+g.playerAction(u3, spades.PLAYER_ACTIONS.BET, spades.BETS.THREE)
 
 # Bethanie bets 2
-g.playerAction(u2, spades.PLAYER_ACTIONS.BET, 2)
+g.playerAction(u2, spades.PLAYER_ACTIONS.BET, spades.BETS.TWO)
 
 # Greyson bets 4, Louis bets 4
-g.playerAction(u4, spades.PLAYER_ACTIONS.BET, 4)
-g.playerAction(u1, spades.PLAYER_ACTIONS.BET, 4)
+g.playerAction(u4, spades.PLAYER_ACTIONS.BET, spades.BETS.FOUR)
+g.playerAction(u1, spades.PLAYER_ACTIONS.BET, spades.BETS.FOUR)
 
+# Examples
+tempuser = g.getPlayerByTurnOrder(g.whoseTurn)
+tempuser.advertiseHand()
+g.playerAction(tempuser, spades.PLAYER_ACTIONS.PLAY, 4)

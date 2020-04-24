@@ -81,7 +81,7 @@ class Card:
         else:
             shortRank = self.rank.name[0]
 
-        s = "|{}*{}| ".format(shortRank, shortSuit)
+        s = "|{}*{}|".format(shortRank, shortSuit)
         return s
 
 class Deck:
@@ -118,6 +118,10 @@ class Player:
     def addBook(self, book):
         self.books.append(book)
 
+    # Return number of books
+    def getNumBooks(self):
+        return len(self.books)
+
     # Update the player bet
     def makeBet(self, bet):
         self.bet = bet
@@ -149,7 +153,7 @@ class Player:
 
         i = 1
         for c in self.hand:
-            s = "{}({}){}".format(s, i, str(c))
+            s = "{}({}){} ".format(s, i, str(c))
             i = i + 1
         s = s + "\n"
         return s
@@ -167,10 +171,12 @@ class Team:
     def __str__(self):
         s = "---------------------\n"
         s = s + "{} ({}|{})\nCurrentBet: {}\tCurrent books: {}\n"
-        s = s.format(self.name, self.score, self.overbooks, self.getNumericalBet(), self.getNumBooks())
+        s = s.format(self.name, self.score, self.overbooks, self.getBetNumerical(), self.getNumBooks())
+        for p in self.players:
+            s = s + "{}|| Bet: {}\tBooks:{}\n".format(p.id, p.bet.name, p.getNumBooks())
         return s
         
-    def getNumericalBet(self):
+    def getBetNumerical(self):
         bet = 0
         for p in self.players:
             if IS_NUMERICAL_BET(p.bet):
@@ -189,15 +195,15 @@ class Team:
 class Game:
     def __init__(self, teams, maxScore):
         self.state = GAME_STATES.PREGAME
-        self.teams = teams
         self.maxScore = maxScore
+        self.teams = teams
+
+        self.numBets = 0 # number of bets placed in current set (reset to 0 after score tally)
+        self.sumBets = 0 # sum of bets players made in current set (13 total books possible)
         self.dealer = 1 # dealer is first in rotation
         self.whoseTurn = 2 # person after dealer bets and plays right after dealer
         self.round = 1 # tally of round number for current set (13 total rounds per scored set)
-        self.numBets = 0 # number of bets placed in current set (reset to 0 after score tally)
-        self.sumBets = 0 # sum of bets players made in current set (13 total books possible)
         self.spadesBroken = False
-
         self.newDeck()
         self.newPile() # pile is list of up to 4 cards currently in play
         self.assignPlayerTurns()
@@ -206,7 +212,7 @@ class Game:
     # Redundant for now maybe hook for later
     def start(self):
         s = "{} vs. {}\nFirst to {} wins. Thats over 9000.".format(self.teams[0].name, self.teams[1].name, self.maxScore)
-        self.advertiseState(s)
+        self.notify(s)
         self.requestStateChange(GAME_STATES.DEALING)
 
     def newDeck(self):
@@ -230,7 +236,7 @@ class Game:
         if len(self.pile) == 0:
             if (card.suit == CARD_SUITS.SPADE) and (not self.spadesBroken):
                 s = "{} tried to play a {}, but spades have not been broken yet. Try again, dingus.".format(str(player), str(card))
-                self.advertiseState(s)
+                self.notify(s)
                 return 0
             else:
                 self.pile.append(player.playCard(cardIndex))
@@ -238,7 +244,7 @@ class Game:
                 self.incrementWhoseTurn()
 
                 s = "{} played the {}.".format(str(player), str(card))
-                self.advertiseState(s)
+                self.notify(s)
                 player.advertiseHand()
 
                 return 1
@@ -250,7 +256,7 @@ class Game:
                 self.incrementWhoseTurn()
 
                 s = "{} played the {}.".format(str(player), str(card))
-                self.advertiseState(s)
+                self.notify(s)
                 player.advertiseHand()
 
                 return 1
@@ -267,12 +273,12 @@ class Game:
                         self.spadesBroken = True
                         s = s + " SPADES ARE BROKEN."
 
-                    self.advertiseState(s)
+                    self.notify(s)
                     player.advertiseHand()
                     return 1
                 else:
                     s = "{} tried to play the {}, but is not allowed. Naughty, naughty!!".format(str(player), str(card))
-                    self.advertiseState(s)
+                    self.notify(s)
                     return 0
 
     def evaluatePile(self):
@@ -312,7 +318,7 @@ class Game:
         self.round = self.round + 1
 
         s = "{} won the round with the {}.".format(str(winner), str(winningCard))
-        self.advertiseState(s)
+        self.notify(s)
 
     def evaluateBooks(self):
         # evaluate scores and add to teams
@@ -323,13 +329,13 @@ class Game:
 
             # check for 10-200
 
-            if t.getNumBooks() < t.getNumericalBet():
-                points = points - (10 * t.getNumericalBet())
+            if t.getNumBooks() < t.getBetNumerical():
+                points = points - (10 * t.getBetNumerical())
             else:
-                points = 10 * t.getNumericalBet()
+                points = 10 * t.getBetNumerical()
 
                 # if you have any overbooks add extra points and check for rollover
-                overbooks = t.getNumBooks() - t.getNumericalBet()
+                overbooks = t.getNumBooks() - t.getBetNumerical()
                 if overbooks > 0:
                     # if no rollover
                     if t.overbooks + overbooks < 10:
@@ -351,7 +357,7 @@ class Game:
         # clear player books and hand
         # reset player bets
 
-        self.advertiseState("Evaluationg books.")
+        self.notify("Evaluationg books.")
 
         # request betting state
 
@@ -408,15 +414,15 @@ class Game:
                             p.advertiseHand()
 
                     self.requestStateChange(GAME_STATES.BETTING)
-                    self.advertiseState("Cards have been dealt, now it's time to bet.")
+                    self.notify("Cards have been dealt, now it's time to bet.")
                     return 1
                 else:
                     s = "{} tried to deal, but it isn't their turn... awkward.".format(str(player))
-                    self.advertiseState(s)
+                    self.notify(s)
                     return 0
             else:
                 s = "{} tried to {} during the {} phase. You can't be doing that.".format(str(player), action.name, self.state.name)
-                self.advertiseState(s)
+                self.notify(s)
                 return 0
         
         elif action == PLAYER_ACTIONS.BET:
@@ -434,7 +440,7 @@ class Game:
                             self.incrementWhoseTurn()
 
                             s = "{} bets {}. The bet total is now {}".format(str(player), currentBet.value, self.sumBets)
-                            self.advertiseState(s)
+                            self.notify(s)
 
                             if self.numBets == 4:
                                 self.requestStateChange(GAME_STATES.PLAYING)
@@ -443,18 +449,18 @@ class Game:
                             return 1
                         else:
                             s = "{} tried to bet {}, but that would exceed 13. Count more better and try again."
-                            self.advertiseState(s)
+                            self.notify(s)
                             return 0
                     # bet not numerical
                     else:
                         pass
                 else:
                     s = "{} tried to {}, but it isn't their turn. What a rascal.".format(str(player), action.name)
-                    self.advertiseState(s)
+                    self.notify(s)
                     return 0
             else:
                 s = "{} tried to {} during the {} phase. Stahp it.".format(str(player), action.name, self.state.name)
-                self.advertiseState(s)
+                self.notify(s)
                 return 0
 
         elif action == PLAYER_ACTIONS.PLAY:
@@ -471,7 +477,7 @@ class Game:
                         if self.playToPile(player, cardIndex):
                             self.evaluatePile()
 
-                            if self.round >= 13:
+                            if self.round > 13:
                                 self.requestStateChange(GAME_STATES.SCORING)
                                 self.evaluateBooks()
 
@@ -482,14 +488,14 @@ class Game:
                         return 0
                 else:
                     s = "{} tried to {}, but it isn't their turn. 50 DKP minus.".format(str(player), action.name)
-                    self.advertiseState(s)
+                    self.notify(s)
                     return 0
             else:
                 s = "{} tried to {} during the {} phase. I can't believe you've done this.".format(str(player), action.name, self.state.name)
-                self.advertiseState(s)
+                self.notify(s)
                 return 0
         else:
-            self.advertiseState("{} tried to do some whack stuff and it isn't even a thing.".format(str(player)))
+            self.notify("{} tried to do some whack stuff and it isn't even a thing.".format(str(player)))
             return 0
 
     def requestStateChange(self, requestedState):
@@ -497,31 +503,51 @@ class Game:
         self.state = requestedState
         return 1
 
-    def advertiseState(self, msg):
-        s = "************************\n************************\n"
-        s = s + msg + "\n"
-        s = s + self.turnInfoToString()
-        s = s + self.pileToString()
-        for t in self.teams:
-            s = s + str(t)
-        s = s + "\n\n"
+    def notify(self, msg):
+        self.notification = msg
+        self.advertiseState()
+
+    def advertiseState(self):
+        s = self.scoreInfoToString() + self.notificationInfoToString() + self.turnInfoToString() + self.pileInfoToString() + self.bettingInfoToString()
         print(s)
 
-    def pileToString(self):
-        s = "---------------------\n"
-        s = s + "Current pile: "
+    def scoreInfoToString(self):
+        t1 = self.teams[0]
+        t2 = self.teams[1]
+        s = "****************************************\n"
+        s = s + "{} [{}|{})\t---VS---\t{} [{}|{})\n".format(t1.name, t1.score, t1.overbooks, t2.name, t2.score, t2.overbooks)
+        return s        
+
+    def notificationInfoToString(self):
+        s = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n{}\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n".format(self.notification)
+        return s
+
+    def turnInfoToString(self):
+        s = "Turn: " + str(self.getPlayerByTurnOrder(self.whoseTurn)) + "\t"
+        s = s + "Dealer: " + str(self.getPlayerByTurnOrder(self.dealer)) + "\t"
+        s = s + "Spades Broken?: " + str(self.spadesBroken) + "\n"
+        s = s + "----------------------------------------\n"
+        return s
+
+    def pileInfoToString(self):
+        s = "Current pile: "
         for c in self.pile:
             s = s + str(c)
         if len(self.pile) == 0:
             s = s + "None yet."
-        s = s + "\n"
+        s = s + "\n----------------------------------------\n"
         return s
 
-    def turnInfoToString(self):
-        s = "---------------------\n"
-        s = s + "Turn: " + str(self.getPlayerByTurnOrder(self.whoseTurn)) + "\t"
-        s = s + "Dealer: " + str(self.getPlayerByTurnOrder(self.dealer)) + "\t"
-        s = s + "Spades Broken?: " + str(self.spadesBroken) + "\n"
+    def bettingInfoToString(self):
+        s = ""
+        for t in self.teams:
+            p1 = t.players[0]
+            p2 = t.players[1]
+
+            temp = "{}({}/{})\t{}({}/{})\t{}({}/{})\n----------------------------------------\n"
+            temp = temp.format(t.name, t.getNumBooks(), t.getBetNumerical(), p1.id, p1.getNumBooks(), p1.bet.name, p2.id, p2.getNumBooks(), p2.bet.name)
+            s = s + temp
+
         return s
 
 if __name__ == "__main__":
@@ -549,3 +575,8 @@ if __name__ == "__main__":
     # Greyson bets 4, Louis bets 4
     g.playerAction(u4, PLAYER_ACTIONS.BET, BETS.FOUR)
     g.playerAction(u1, PLAYER_ACTIONS.BET, BETS.FOUR)
+
+    # Examples
+    tempuser = g.getPlayerByTurnOrder(g.whoseTurn)
+    tempuser.advertiseHand()
+    g.playerAction(tempuser, PLAYER_ACTIONS.PLAY, 4)
