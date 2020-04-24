@@ -218,7 +218,7 @@ class Game:
 
             # check for nil or 10-200 bets
             isTTH = False
-            for p in t:
+            for p in t.players:
                 if p.bet == BETS.NIL:
                     if p.getNumBooks() > 0:
                         points = points - 100
