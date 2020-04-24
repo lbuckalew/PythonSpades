@@ -26,7 +26,7 @@ if __name__ == "__main__":
     g.playerAction(u2, PLAYER_ACTIONS.BET, BETS.TWO)
 
     # Greyson bets 4, Louis bets 4
-    g.playerAction(u4, PLAYER_ACTIONS.BET, BETS.FOUR)
+    g.playerAction(u4, PLAYER_ACTIONS.BET, BETS.NIL)
     g.playerAction(u1, PLAYER_ACTIONS.BET, BETS.FOUR)
 
     # Examples of playing

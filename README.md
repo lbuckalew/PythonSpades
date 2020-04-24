@@ -17,18 +17,18 @@ Turn: Steven    Dealer: Louis   Spades Broken?: False
 ----------------------------------------
 Current pile: None yet.
 ----------------------------------------
-team1(0/0)      Louis(0/NONE)   Bethanie(0/NONE)
+team1 books (0/0) >>> Louis(0/NONE) & Bethanie(0/NONE)
 ----------------------------------------
-team2(0/0)      Steven(0/NONE)  Greyson(0/NONE)
+team2 books (0/0) >>> Steven(0/NONE) & Greyson(0/NONE)
 ----------------------------------------
 
-Louis's hand: (1)|3*D| (2)|2*C| (3)|3*H| (4)|5*D| (5)|4*C| (6)|2*H| (7)|10*H| (8)|5*S| (9)|4*H| (10)|6*H| (11)|J*H| (12)|Q*C| (13)|9*H| 
+Louis's hand: (1)|A*C| (2)|Q*C| (3)|7*D| (4)|2*S| (5)|8*H| (6)|7*S| (7)|2*D| (8)|7*H| (9)|3*D| (10)|7*C| (11)|10*H| (12)|K*S| (13)|K*C| 
 
-Bethanie's hand: (1)|6*S| (2)|10*D| (3)|2*D| (4)|4*S| (5)|5*H| (6)|7*S| (7)|Q*D| (8)|7*D| (9)|8*D| (10)|8*H| (11)|9*S| (12)|5*C| (13)|3*C| 
+Bethanie's hand: (1)|8*S| (2)|10*D| (3)|8*D| (4)|10*C| (5)|A*S| (6)|K*D| (7)|3*H| (8)|8*C| (9)|6*D| (10)|6*S| (11)|J*S| (12)|4*S| (13)|9*D| 
 
-Steven's hand: (1)|8*S| (2)|9*C| (3)|A*D| (4)|3*S| (5)|6*D| (6)|4*D| (7)|A*H| (8)|Q*S| (9)|Q*H| (10)|J*D| (11)|7*C| (12)|A*S| (13)|K*C| 
+Steven's hand: (1)|4*H| (2)|A*H| (3)|Q*S| (4)|3*C| (5)|2*C| (6)|5*C| (7)|Q*D| (8)|A*D| (9)|4*D| (10)|9*S| (11)|10*S| (12)|J*H| (13)|5*S| 
 
-Greyson's hand: (1)|K*H| (2)|6*C| (3)|J*C| (4)|K*D| (5)|K*S| (6)|10*S| (7)|2*S| (8)|J*S| (9)|7*H| (10)|A*C| (11)|8*C| (12)|10*C| (13)|9*D| 
+Greyson's hand: (1)|9*C| (2)|9*H| (3)|5*H| (4)|2*H| (5)|K*H| (6)|6*C| (7)|Q*H| (8)|6*H| (9)|4*C| (10)|J*D| (11)|J*C| (12)|5*D| (13)|3*S| 
 
 ****************************************
 team1 [0|0)     ---VS---        team2 [0|0)
@@ -39,9 +39,9 @@ Turn: Steven    Dealer: Steven  Spades Broken?: False
 ----------------------------------------
 Current pile: None yet.
 ----------------------------------------
-team1(0/0)      Louis(0/NONE)   Bethanie(0/NONE)
+team1 books (0/0) >>> Louis(0/NONE) & Bethanie(0/NONE)
 ----------------------------------------
-team2(0/0)      Steven(0/NONE)  Greyson(0/NONE)
+team2 books (0/0) >>> Steven(0/NONE) & Greyson(0/NONE)
 ----------------------------------------
 
 ****************************************
@@ -53,9 +53,9 @@ Turn: Bethanie  Dealer: Steven  Spades Broken?: False
 ----------------------------------------
 Current pile: None yet.
 ----------------------------------------
-team1(0/0)      Louis(0/NONE)   Bethanie(0/NONE)
+team1 books (0/0) >>> Louis(0/NONE) & Bethanie(0/NONE)
 ----------------------------------------
-team2(0/3)      Steven(0/THREE) Greyson(0/NONE)
+team2 books (0/3) >>> Steven(0/THREE) & Greyson(0/NONE)
 ----------------------------------------
 
 ****************************************
@@ -67,52 +67,52 @@ Turn: Greyson   Dealer: Steven  Spades Broken?: False
 ----------------------------------------
 Current pile: None yet.
 ----------------------------------------
-team1(0/2)      Louis(0/NONE)   Bethanie(0/TWO)
+team1 books (0/2) >>> Louis(0/NONE) & Bethanie(0/TWO)
 ----------------------------------------
-team2(0/3)      Steven(0/THREE) Greyson(0/NONE)
+team2 books (0/3) >>> Steven(0/THREE) & Greyson(0/NONE)
 ----------------------------------------
 
 ****************************************
 team1 [0|0)     ---VS---        team2 [0|0)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Greyson bets 4. The bet total is now 9
+Greyson is going NIL. The bet total is now 5
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Turn: Louis     Dealer: Steven  Spades Broken?: False
 ----------------------------------------
 Current pile: None yet.
 ----------------------------------------
-team1(0/2)      Louis(0/NONE)   Bethanie(0/TWO)
+team1 books (0/2) >>> Louis(0/NONE) & Bethanie(0/TWO)
 ----------------------------------------
-team2(0/7)      Steven(0/THREE) Greyson(0/FOUR)
+team2 books (0/3) >>> Steven(0/THREE) & Greyson(0/NIL)
 ----------------------------------------
 
 ****************************************
 team1 [0|0)     ---VS---        team2 [0|0)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Louis bets 4. The bet total is now 13
+Louis bets 4. The bet total is now 9
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Turn: Steven    Dealer: Steven  Spades Broken?: False
 ----------------------------------------
 Current pile: None yet.
 ----------------------------------------
-team1(0/6)      Louis(0/FOUR)   Bethanie(0/TWO)
+team1 books (0/6) >>> Louis(0/FOUR) & Bethanie(0/TWO)
 ----------------------------------------
-team2(0/7)      Steven(0/THREE) Greyson(0/FOUR)
+team2 books (0/3) >>> Steven(0/THREE) & Greyson(0/NIL)
 ----------------------------------------
 
-Steven's hand: (1)|8*S| (2)|9*C| (3)|A*D| (4)|3*S| (5)|6*D| (6)|4*D| (7)|A*H| (8)|Q*S| (9)|Q*H| (10)|J*D| (11)|7*C| (12)|A*S| (13)|K*C| 
+Steven's hand: (1)|4*H| (2)|A*H| (3)|Q*S| (4)|3*C| (5)|2*C| (6)|5*C| (7)|Q*D| (8)|A*D| (9)|4*D| (10)|9*S| (11)|10*S| (12)|J*H| (13)|5*S| 
 
 ****************************************
 team1 [0|0)     ---VS---        team2 [0|0)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Steven tried to play a |3*S|, but spades have not been broken yet. Try again, dingus.
+Steven tried to PLAY during the BETTING phase. I can't believe you've done this.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Turn: Steven    Dealer: Steven  Spades Broken?: False
 ----------------------------------------
 Current pile: None yet.
 ----------------------------------------
-team1(0/6)      Louis(0/FOUR)   Bethanie(0/TWO)
+team1 books (0/6) >>> Louis(0/FOUR) & Bethanie(0/TWO)
 ----------------------------------------
-team2(0/7)      Steven(0/THREE) Greyson(0/FOUR)
+team2 books (0/3) >>> Steven(0/THREE) & Greyson(0/NIL)
 ----------------------------------------
 ```

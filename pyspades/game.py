@@ -74,6 +74,39 @@ class Game:
             self.incrementWhoseTurn()
         self.incrementDealer()
 
+    def makeBet(self, player, bet):
+        if IS_NUMERICAL_BET(bet):
+            player.makeBet(bet)
+            self.numBets = self.numBets + 1
+            self.sumBets = self.sumBets + bet.value
+            self.incrementWhoseTurn()
+
+            s = "{} bets {}. The bet total is now {}".format(str(player), bet.value, self.sumBets)
+            self.notify(s)
+
+            # Leave betting phase if last bet
+            if self.numBets == 4:
+                self.requestStateChange(GAME_STATES.PLAYING)
+
+            return 1
+
+        # If special bet that isn't <none>
+        elif not bet == BETS.NONE:
+            player.makeBet(bet)
+            self.numBets = self.numBets + 1
+
+            # If TTH, add 10 to bet total. Both nils dont affect bet total.
+            if bet == BETS.TTH:
+                self.sumBets = self.sumBets + 10
+            
+            self.incrementWhoseTurn()
+            s = "{} is going {}. The bet total is now {}".format(str(player), bet.name, self.sumBets)
+            self.notify(s)
+
+            return 1
+        else:
+            return 0
+
     def playToPile(self, player, cardIndex):
         card = player.previewCard(cardIndex)
 
@@ -96,12 +129,14 @@ class Game:
 
         # if not first card
         else:
+            # if right suit
             if card.suit == self.pileSuit:
                 self.pile.append(player.playCard(cardIndex))
                 self.incrementWhoseTurn()
 
                 s = "{} played the {}.".format(str(player), str(card))
                 self.notify(s)
+
                 player.advertiseHand()
 
                 return 1
@@ -120,10 +155,12 @@ class Game:
 
                     self.notify(s)
                     player.advertiseHand()
+
                     return 1
                 else:
                     s = "{} tried to play the {}, but is not allowed. Naughty, naughty!!".format(str(player), str(card))
                     self.notify(s)
+
                     return 0
 
     def evaluatePile(self):
@@ -159,12 +196,14 @@ class Game:
         # give winner next turn
         self.setWhoseTurn(winner)
 
+        # fix state for new round
         self.newPile()
         self.round = self.round + 1
 
         s = "{} won the round with the {}.".format(str(winner), str(winningCard))
         self.notify(s)
 
+        # Check if it was the last round before scoring books
         if self.round > 13:
             self.requestStateChange(GAME_STATES.SCORING)
 
@@ -297,38 +336,7 @@ class Game:
             currentBet = actionArg
             if self.state == GAME_STATES.BETTING:
                 if player.turnOrder == self.whoseTurn:
-
-                    # if numerical bet
-                    if IS_NUMERICAL_BET(currentBet):
-                        player.makeBet(currentBet)
-                        self.numBets = self.numBets + 1
-                        self.sumBets = self.sumBets + currentBet.value
-
-                        self.incrementWhoseTurn()
-
-                        s = "{} bets {}. The bet total is now {}".format(str(player), currentBet.value, self.sumBets)
-                        self.notify(s)
-
-                        if self.numBets == 4:
-                            self.requestStateChange(GAME_STATES.PLAYING)
-
-                        return 1
-                    # if special bet
-                    else:
-                        if currentBet == BETS.NONE:
-                            #error
-                            return 0
-                        else:
-                            player.makeBet(currentBet)
-
-                            # If TTH, add 10 to bet total. Both nils dont affect bet total.
-                            if currentBet == BETS.TTH:
-                                self.sumBets = self.sumBets + 10
-                            
-                            self.incrementWhoseTurn()
-                            s = "{} is going {}. The bet total is now {}".format(str(player), currentBet.name, self.sumBets)
-                            self.notify(s)
-                            return 1                        
+                        return self.makeBet(player, currentBet)
                 else:
                     s = "{} tried to {}, but it isn't their turn. What a rascal.".format(str(player), action.name)
                     self.notify(s)
@@ -421,7 +429,7 @@ class Game:
             p1 = t.players[0]
             p2 = t.players[1]
 
-            temp = "{}({}/{})\t{}({}/{})\t{}({}/{})\n----------------------------------------\n"
+            temp = "{} books ({}/{}) >>> {}({}/{}) & {}({}/{})\n----------------------------------------\n"
             temp = temp.format(t.name, t.getNumBooks(), t.getBetNumerical(), p1.id, p1.getNumBooks(), p1.bet.name, p2.id, p2.getNumBooks(), p2.bet.name)
             s = s + temp
 
