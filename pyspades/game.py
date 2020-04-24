@@ -165,31 +165,54 @@ class Game:
         s = "{} won the round with the {}.".format(str(winner), str(winningCard))
         self.notify(s)
 
+        if self.round > 13:
+            self.requestStateChange(GAME_STATES.SCORING)
+
     def evaluateBooks(self):
         # evaluate scores and add to teams
         for t in self.teams:
             points = 0
 
-            # check for no nil violation
-
-            # check for 10-200
-
-            if t.getNumBooks() < t.getBetNumerical():
-                points = points - (10 * t.getBetNumerical())
-            else:
-                points = 10 * t.getBetNumerical()
-
-                # if you have any overbooks add extra points and check for rollover
-                overbooks = t.getNumBooks() - t.getBetNumerical()
-                if overbooks > 0:
-                    # if no rollover
-                    if t.overbooks + overbooks < 10:
-                        points = points + overbooks
-                        t.overbooks = t.overbooks + overbooks
-                    else: # if rollover
+            # check for nil or 10-200 bets
+            isTTH = False
+            for p in t:
+                if p.bet == BETS.NIL:
+                    if p.getNumBooks() > 0:
                         points = points - 100
-                        t.overbooks = t.overbooks + overbooks - 10
-                        points = points + t.overbooks
+                    else:
+                        points = points + 100
+
+                elif p.bet == BETS.TTH:
+                    isTTH = True
+
+            # If ten-two-hundred bet, score differently
+            if isTTH:
+                if t.getNumBooks() >= 10:
+                    points = points + 200
+                    overbooks = t.getNumBooks - 10
+                else:
+                    points = points - 100
+                    overbooks = 0
+
+            # If numerical, nil, blind nil bet then continue here
+            else:
+                if t.getNumBooks() < t.getBetNumerical():
+                    points = points - (10 * t.getBetNumerical())
+                    overbooks = 0
+                else:
+                    points = 10 * t.getBetNumerical()
+                    overbooks = t.getNumBooks() - t.getBetNumerical()
+
+            # Evaluate overbooks
+            if overbooks > 0:
+                # if no rollover
+                if t.overbooks + overbooks < 10:
+                    points = points + overbooks
+                    t.overbooks = t.overbooks + overbooks
+                else: # if rollover
+                    points = points - 100
+                    t.overbooks = t.overbooks + overbooks - 10
+                    points = points + t.overbooks
 
             t.score = t.score + points
 
@@ -277,28 +300,35 @@ class Game:
 
                     # if numerical bet
                     if IS_NUMERICAL_BET(currentBet):
-                        if (self.sumBets + currentBet.value) <= 13:
-                            player.makeBet(currentBet)
-                            self.numBets = self.numBets + 1
-                            self.sumBets = self.sumBets + currentBet.value
+                        player.makeBet(currentBet)
+                        self.numBets = self.numBets + 1
+                        self.sumBets = self.sumBets + currentBet.value
 
-                            self.incrementWhoseTurn()
+                        self.incrementWhoseTurn()
 
-                            s = "{} bets {}. The bet total is now {}".format(str(player), currentBet.value, self.sumBets)
-                            self.notify(s)
+                        s = "{} bets {}. The bet total is now {}".format(str(player), currentBet.value, self.sumBets)
+                        self.notify(s)
 
-                            if self.numBets == 4:
-                                self.requestStateChange(GAME_STATES.PLAYING)
-                                # notify all of playing state
+                        if self.numBets == 4:
+                            self.requestStateChange(GAME_STATES.PLAYING)
 
-                            return 1
-                        else:
-                            s = "{} tried to bet {}, but that would exceed 13. Count more better and try again."
-                            self.notify(s)
-                            return 0
-                    # bet not numerical
+                        return 1
+                    # if special bet
                     else:
-                        pass
+                        if currentBet == BETS.NONE:
+                            #error
+                            return 0
+                        else:
+                            player.makeBet(currentBet)
+
+                            # If TTH, add 10 to bet total. Both nils dont affect bet total.
+                            if currentBet == BETS.TTH:
+                                self.sumBets = self.sumBets + 10
+                            
+                            self.incrementWhoseTurn()
+                            s = "{} is going {}. The bet total is now {}".format(str(player), currentBet.name, self.sumBets)
+                            self.notify(s)
+                            return 1                        
                 else:
                     s = "{} tried to {}, but it isn't their turn. What a rascal.".format(str(player), action.name)
                     self.notify(s)
@@ -312,22 +342,16 @@ class Game:
             cardIndex = actionArg
             if self.state == GAME_STATES.PLAYING:
                 if player.turnOrder == self.whoseTurn:
-                    if len(self.pile) < 3:
+                    # If pile is right size
+                    if len(self.pile) <= 3:
+                        # If allowed to, play that card to pile
                         if self.playToPile(player, cardIndex):
+                            # If the last card in the pile was just played, evaluate the pile
+                            if len(self.pile) == 4:
+                                self.evaluatePile()
                             return 1
                         else:
                             return 0
-
-                    elif len(self.pile) == 3:
-                        if self.playToPile(player, cardIndex):
-                            self.evaluatePile()
-
-                            if self.round > 13:
-                                self.requestStateChange(GAME_STATES.SCORING)
-                                self.evaluateBooks()
-
-                            return 1
-
                     else:
                         # error in pile size
                         return 0
@@ -345,6 +369,14 @@ class Game:
 
     def requestStateChange(self, requestedState):
         #TODO make gooder
+        if requestedState == GAME_STATES.SCORING:
+            if self.round > 13:
+                self.evaluateBooks()
+                self.state = requestedState
+                return 1
+            else:
+                return 0
+
         self.state = requestedState
         return 1
 
