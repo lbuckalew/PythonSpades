@@ -74,6 +74,16 @@ class Game:
             self.incrementWhoseTurn()
         self.incrementDealer()
 
+        self.newDeck()
+
+        # notify all players of hands
+        for t in self.teams:
+            for p in t.players:
+                p.advertiseHand()
+
+        self.notify("Cards have been dealt, now it's time to bet.")
+        self.requestStateChange(GAME_STATES.BETTING)
+
     def makeBet(self, player, bet):
         if IS_NUMERICAL_BET(bet):
             player.makeBet(bet)
@@ -114,18 +124,13 @@ class Game:
         if len(self.pile) == 0:
             if (card.suit == CARD_SUITS.SPADE) and (not self.spadesBroken):
                 s = "{} tried to play a {}, but spades have not been broken yet. Try again, dingus.".format(str(player), str(card))
-                self.notify(s)
-                return 0
+                success = False
             else:
                 self.pile.append(player.playCard(cardIndex))
                 self.pileSuit = card.suit
                 self.incrementWhoseTurn()
-
                 s = "{} played the {}.".format(str(player), str(card))
-                self.notify(s)
-                player.advertiseHand()
-
-                return 1
+                success = True
 
         # if not first card
         else:
@@ -133,16 +138,11 @@ class Game:
             if card.suit == self.pileSuit:
                 self.pile.append(player.playCard(cardIndex))
                 self.incrementWhoseTurn()
-
                 s = "{} played the {}.".format(str(player), str(card))
-                self.notify(s)
-
-                player.advertiseHand()
-
-                return 1
+                success = True
             else:
-                numOfSuit = player.hasSuit(self.pileSuit)
                 # If they dont have trump suit let them play
+                numOfSuit = player.hasSuit(self.pileSuit)
                 if numOfSuit == 0:
                     self.pile.append(player.playCard(cardIndex))
                     self.incrementWhoseTurn()
@@ -152,20 +152,24 @@ class Game:
                     if card.suit == CARD_SUITS.SPADE:
                         self.spadesBroken = True
                         s = s + " SPADES ARE BROKEN."
-
-                    self.notify(s)
-                    player.advertiseHand()
-
-                    return 1
+                    success = True
                 else:
                     s = "{} tried to play the {}, but is not allowed. Naughty, naughty!!".format(str(player), str(card))
-                    self.notify(s)
+                    success = False
 
-                    return 0
+        self.notify(s)
+
+        # Show player hand if they were able to play
+        if success :
+            player.advertiseHand()
+
+        # If the last card in the pile was just played, evaluate the pile
+        if len(self.pile) == 4:
+            self.evaluatePile()
+
+        return success
 
     def evaluatePile(self):
-        # if 4
-
         # check if pile is spaded
         for c in self.pile:
             if c.suit == CARD_SUITS.SPADE:
@@ -311,17 +315,7 @@ class Game:
         if action == PLAYER_ACTIONS.DEAL:
             if self.state == GAME_STATES.DEALING:
                 if player.turnOrder == self.dealer:
-                    self.newDeck()
-                    self.deck.shuffle()
                     self.deal()
-                    
-                    # notify all players of hands
-                    for t in self.teams:
-                        for p in t.players:
-                            p.advertiseHand()
-
-                    self.requestStateChange(GAME_STATES.BETTING)
-                    self.notify("Cards have been dealt, now it's time to bet.")
                     return 1
                 else:
                     s = "{} tried to deal, but it isn't their turn... awkward.".format(str(player))
@@ -350,19 +344,15 @@ class Game:
             cardIndex = actionArg
             if self.state == GAME_STATES.PLAYING:
                 if player.turnOrder == self.whoseTurn:
-                    # If pile is right size
-                    if len(self.pile) <= 3:
-                        # If allowed to, play that card to pile
-                        if self.playToPile(player, cardIndex):
-                            # If the last card in the pile was just played, evaluate the pile
-                            if len(self.pile) == 4:
-                                self.evaluatePile()
-                            return 1
-                        else:
-                            return 0
+                    # If allowed to, play card to pile
+                    if self.playToPile(player, cardIndex):
+                        # If the last card in the pile was just played, evaluate the pile
+                        if len(self.pile) == 4:
+                            self.evaluatePile()
+                        return 1
                     else:
-                        # error in pile size
                         return 0
+
                 else:
                     s = "{} tried to {}, but it isn't their turn. 50 DKP minus.".format(str(player), action.name)
                     self.notify(s)
