@@ -68,13 +68,15 @@ class Game:
         self.pileSuit = 0
 
     def deal(self):
+        # Make new deck, which shuffles
+        self.newDeck()
+
+        # Deal out cards
         while len(self.deck.stack) > 0:
             p = self.getPlayerByTurnOrder(self.whoseTurn)
             p.addToHand(self.deck.draw())
             self.incrementWhoseTurn()
         self.incrementDealer()
-
-        self.newDeck()
 
         # notify all players of hands
         for t in self.teams:
@@ -85,33 +87,29 @@ class Game:
         self.requestStateChange(GAME_STATES.BETTING)
 
     def makeBet(self, player, bet):
-        if IS_NUMERICAL_BET(bet):
-            player.makeBet(bet)
-            self.numBets = self.numBets + 1
-            self.sumBets = self.sumBets + bet.value
-            self.incrementWhoseTurn()
+        if player.makeBet(bet):
 
+            if IS_NUMERICAL_BET(bet):
+                self.sumBets = self.sumBets + bet.value
+            # If TTH, add 10 to bet total. Both nils dont affect bet total.
+            elif bet == BETS.TTH:
+                # Find partner
+                team = self.teams[player.teamIndex]
+                for p in team.players:
+                    # If it isn't you it must be your partner
+                    if not p.id == player.id:
+                        partner = p
+
+                self.sumBets = self.sumBets + 10 - partner.getBetNumerical()
+
+            self.numBets = self.numBets + 1
+            self.incrementWhoseTurn()
             s = "{} bets {}. The bet total is now {}".format(str(player), bet.value, self.sumBets)
             self.notify(s)
 
             # Leave betting phase if last bet
-            if self.numBets == 4:
+            if self.numBets >= 4:
                 self.requestStateChange(GAME_STATES.PLAYING)
-
-            return 1
-
-        # If special bet that isn't <none>
-        elif not bet == BETS.NONE:
-            player.makeBet(bet)
-            self.numBets = self.numBets + 1
-
-            # If TTH, add 10 to bet total. Both nils dont affect bet total.
-            if bet == BETS.TTH:
-                self.sumBets = self.sumBets + 10
-            
-            self.incrementWhoseTurn()
-            s = "{} is going {}. The bet total is now {}".format(str(player), bet.name, self.sumBets)
-            self.notify(s)
 
             return 1
         else:
@@ -126,41 +124,35 @@ class Game:
                 s = "{} tried to play a {}, but spades have not been broken yet. Try again, dingus.".format(str(player), str(card))
                 success = False
             else:
-                self.pile.append(player.playCard(cardIndex))
                 self.pileSuit = card.suit
-                self.incrementWhoseTurn()
-                s = "{} played the {}.".format(str(player), str(card))
                 success = True
 
         # if not first card
         else:
             # if right suit
             if card.suit == self.pileSuit:
-                self.pile.append(player.playCard(cardIndex))
-                self.incrementWhoseTurn()
-                s = "{} played the {}.".format(str(player), str(card))
                 success = True
             else:
                 # If they dont have trump suit let them play
                 numOfSuit = player.hasSuit(self.pileSuit)
                 if numOfSuit == 0:
-                    self.pile.append(player.playCard(cardIndex))
-                    self.incrementWhoseTurn()
-
-                    # If spades make sure report broken and change pile suit
-                    s = "{} played the {}.".format(str(player), str(card))
-                    if card.suit == CARD_SUITS.SPADE:
-                        self.spadesBroken = True
-                        s = s + " SPADES ARE BROKEN."
                     success = True
                 else:
                     s = "{} tried to play the {}, but is not allowed. Naughty, naughty!!".format(str(player), str(card))
                     success = False
 
-        self.notify(s)
-
         # Show player hand if they were able to play
-        if success :
+        if success:
+            s = "{} played the {}.".format(str(player), str(card))
+
+            if card.suit == CARD_SUITS.SPADE:
+                if self.spadesBroken == False:
+                    self.spadesBroken = True
+                    s = s + " SPADES HAVE BEEN BROKEN!"
+
+            self.pile.append(player.playCard(cardIndex))
+            self.incrementWhoseTurn()
+            self.notify(s)
             player.advertiseHand()
 
         # If the last card in the pile was just played, evaluate the pile
@@ -232,7 +224,7 @@ class Game:
             if isTTH:
                 if t.getNumBooks() >= 10:
                     points = points + 200
-                    overbooks = t.getNumBooks - 10
+                    overbooks = t.getNumBooks() - 10
                 else:
                     points = points - 100
                     overbooks = 0
@@ -259,24 +251,23 @@ class Game:
 
             t.score = t.score + points
 
-        # has the max score been reached?
-
-        # do stuff to reset game state for next set
-        self.newDeck()
-        self.newPile()
-        self.round = 1
-        # clear player books and hand
-        # reset player bets
-
-        self.notify("Evaluationg books.")
-
-        # request betting state
+        # Check if max score reached
+        for t in self.teams:
+            if t.score >= self.maxScore:
+                self.requestStateChange(GAME_STATES.POSTGAME)
+            else:
+                self.requestStateChange(GAME_STATES.DEALING)
+                self.notify("Evaluationg books.")
 
     def assignPlayerTurns(self):
-        self.teams[0].players[0].turnOrder = 1
-        self.teams[1].players[0].turnOrder = 2
-        self.teams[0].players[1].turnOrder = 3
-        self.teams[1].players[1].turnOrder = 4
+        teamIndex = 0
+        for t in self.teams:
+            playerIndex = 0
+            for p in t.players:
+                p.turnOrder = (teamIndex + 1) + (playerIndex * 2)
+                p.teamIndex = teamIndex
+                playerIndex = playerIndex + 1
+            teamIndex = teamIndex + 1
 
     def incrementDealer(self):
         if self.dealer == 4:
@@ -370,10 +361,46 @@ class Game:
         if requestedState == GAME_STATES.SCORING:
             if self.round > 13:
                 self.evaluateBooks()
-                self.state = requestedState
                 return 1
             else:
                 return 0
+        elif requestedState == GAME_STATES.BETTING:
+            # If requesting SCORING -> BETTING then reset the game state for new set
+            if self.state == GAME_STATES.PLAYING:
+                # do stuff to reset game state for next set
+                self.numBets = 0
+                self.sumBets = 0
+                self.newPile()
+                self.round = 1
+                # clear player books and hand
+                for t in self.teams:
+                    t.reset()
+                    for p in t.players:
+                        p.reset()
+                self.newDeck()
+            self.state = GAME_STATES.BETTING
+
+        elif requestedState == GAME_STATES.DEALING:
+            if self.state == GAME_STATES.SCORING:
+                # do stuff to reset game state for next set
+                self.numBets = 0
+                self.sumBets = 0
+                self.newPile()
+                self.round = 1
+                # clear player books and hand
+                for t in self.teams:
+                    t.reset()
+                    for p in t.players:
+                        p.reset()
+
+                self.state == requestedState
+
+        # Show winner info
+        elif requestedState == GAME_STATES.POSTGAME:
+            self.advertiseWinner()
+
+        elif requestedState == GAME_STATES.PLAYING:
+            self.state = requestedState
 
         self.state = requestedState
         return 1
@@ -385,6 +412,9 @@ class Game:
     def advertiseState(self):
         s = self.scoreInfoToString() + self.notificationInfoToString() + self.turnInfoToString() + self.pileInfoToString() + self.bettingInfoToString()
         print(s)
+
+    def advertiseWinner(self):
+        print(self.winnerInfoToString())
 
     def scoreInfoToString(self):
         t1 = self.teams[0]
@@ -420,7 +450,20 @@ class Game:
             p2 = t.players[1]
 
             temp = "{} books ({}/{}) >>> {}({}/{}) & {}({}/{})\n----------------------------------------\n"
-            temp = temp.format(t.name, t.getNumBooks(), t.getBetNumerical(), p1.id, p1.getNumBooks(), p1.bet.name, p2.id, p2.getNumBooks(), p2.bet.name)
+            temp = temp.format(t.name, t.getNumBooks(), t.getBetNumerical(), p1.name, p1.getNumBooks(), p1.bet.name, p2.name, p2.getNumBooks(), p2.bet.name)
             s = s + temp
 
+        return s
+
+    def winnerInfoToString(self):
+        if self.state == GAME_STATES.POSTGAME:
+            winner = self.teams[0]
+            if self.teams[1] > self.teams[0]:
+                winner = self.teams[1]
+
+            s = "****************************************\n****************************************\n"
+            s = s + "{} won with {} pts!!!".format(winner.name, winner.score)
+            s = s + "****************************************\n****************************************\n"
+        else:
+            s = "No winner yet..."
         return s

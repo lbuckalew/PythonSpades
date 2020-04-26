@@ -26,9 +26,9 @@ class CARD_RANKS(Enum):
 
 class Card:
     def __init__(self, id):
-        self.id = id
+        self.id = float(id)
 
-        suit = int(math.ceil(id / 13))
+        suit = int(math.ceil(self.id / 13))
         if suit < 0:
             raise ValueError()
         elif (suit >= 1) and (suit <= 4):

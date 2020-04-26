@@ -3,19 +3,16 @@ from enum import Enum
 from game import BETS, IS_NUMERICAL_BET
 
 class Player:
-    def __init__(self, id):
+    def __init__(self, id, name):
         self.id = id # will be text id like discord id
+        self.name = name # User's name to be displayed
         self.books = [] # list of card lists for each book
         self.bet = BETS.NONE # the players bet for the current round
         self.hand = [] # list of cards for player's hand
         self.turnOrder = 0 # the players order in the repeating rotation
 
     def __str__(self):
-        return self.id
-
-    # Empty set of books for new deal
-    def clearBooks(self):
-        self.books = []
+        return self.name
 
     # Add a list of cards as a book
     def addBook(self, book):
@@ -27,7 +24,11 @@ class Player:
 
     # Update the player bet
     def makeBet(self, bet):
-        self.bet = bet
+        if bet == BETS.NONE:
+            return 0
+        elif isinstance(bet, BETS):
+            self.bet = bet
+            return 1
 
     # Add card to hand
     def addToHand(self, card):
@@ -61,8 +62,25 @@ class Player:
         s = s + "\n"
         return s
 
+    def getBetNumerical(self):
+        bet = 0
+        if IS_NUMERICAL_BET(self.bet):
+            bet = bet + self.bet.value
+        elif self.bet == BETS.TTH:
+            bet = 10
+        else:
+            bet = 0
+
+        return bet
+
     def advertiseHand(self):
         print(self.handToString())
+
+    # Reset for now set of rounds
+    def reset(self):
+        self.hand = []
+        self.books = []
+        self.bet = BETS.NONE
 
 class Team:
     def __init__(self, name, players):
@@ -85,12 +103,15 @@ class Team:
             if IS_NUMERICAL_BET(p.bet):
                 bet = bet + p.bet.value
 
+            elif p.bet == BETS.TTH:
+                bet = 10
+                break
+
         return bet
 
     def getNumBooks(self):
         return len(self.players[0].books + self.players[1].books)
 
-    def updateScore(self):
-        # compare bets with books
-        # change score
-        pass
+    # Reset for now set of rounds
+    def reset(self):
+        self.overbooks = 0

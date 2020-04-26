@@ -6,11 +6,11 @@ from pyspades import *
 if __name__ == "__main__":
     # L > S > B > G
 
-    u1 = Player("Louis")
-    u2 = Player("Bethanie")
-    u3 = Player("Steven")
-    u4 = Player("Greyson")
-
+    u1 = Player("1", "Louis")
+    u2 = Player("2", "Bethanie")
+    u3 = Player("3", "Steven")
+    u4 = Player("4", "Greyson")
+    
     t1 = Team("team1", [u1, u2])
     t2 = Team("team2", [u3, u4])
 
