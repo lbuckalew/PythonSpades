@@ -114,4 +114,5 @@ class Team:
 
     # Reset for now set of rounds
     def reset(self):
-        self.overbooks = 0
+        for p in self.players:
+            p.reset()

@@ -203,6 +203,7 @@ class Game:
         if self.round > 13:
             self.requestStateChange(GAME_STATES.SCORING)
 
+
     def evaluateBooks(self):
         # evaluate scores and add to teams
         for t in self.teams:
@@ -251,13 +252,25 @@ class Game:
 
             t.score = t.score + points
 
-        # Check if max score reached
+        # has the max score been reached?
+        gameOver = False
         for t in self.teams:
-            if t.score >= self.maxScore:
-                self.requestStateChange(GAME_STATES.POSTGAME)
-            else:
-                self.requestStateChange(GAME_STATES.DEALING)
-                self.notify("Evaluationg books.")
+            gameOver = gameOver or (t.score >= self.maxScore)
+
+        if not gameOver:
+            # do stuff to reset game state for next set
+            self.numBets = 0
+            self.sumBets = 0
+            self.newPile()
+            self.round = 1
+            # clear player books and hand
+            for t in self.teams:
+                t.reset()
+
+            self.notify("Evaluationg books.")
+            self.requestStateChange(GAME_STATES.DEALING)
+        else:
+            self.requestStateChange(GAME_STATES.POSTGAME)
 
     def assignPlayerTurns(self):
         teamIndex = 0
@@ -375,8 +388,7 @@ class Game:
                 # clear player books and hand
                 for t in self.teams:
                     t.reset()
-                    for p in t.players:
-                        p.reset()
+
                 self.newDeck()
             self.state = GAME_STATES.BETTING
 

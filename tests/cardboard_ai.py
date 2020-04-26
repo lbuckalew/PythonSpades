@@ -4,8 +4,14 @@ import random
 from math import ceil
 
 class Derp:
-    def __init__(self, game):
+    def __init__(self, game, limiter=0):
         self.game = game
+        self.limited = False
+        self.limiter = limiter
+        self.actions = 0
+
+        if limiter > 0:
+            self.limited = True
 
     def deal(self, dealer):
         self.game.playerAction(dealer, PLAYER_ACTIONS.DEAL, 0)
@@ -44,11 +50,16 @@ class Derp:
             self.makeBet(player)
 
         elif self.game.state == GAME_STATES.PLAYING:
+            print('fug')
             self.playCard(player)
         else:
             pass
     def showSomeHussle(self):
         while not self.game.state == GAME_STATES.POSTGAME:
+            if self.limited:
+                if self.actions >= self.limiter:
+                    break
+
             self.slerp()
 
 if __name__ == "__main__":
