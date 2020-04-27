@@ -113,6 +113,10 @@ class Team:
         return len(self.players[0].books + self.players[1].books)
 
     # Reset for now set of rounds
-    def reset(self):
+    def newSet(self):
         for p in self.players:
             p.reset()
+
+    def reset(self):
+        self.newSet()
+        self.score = 0

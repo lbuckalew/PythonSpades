@@ -20,7 +20,7 @@ class Derp:
         success = False
         while not success:
             distr = float(random.randint(1,20))
-            betval = ceil(distr/4)
+            betval = ceil(distr/5)
             # 1/20 chance of blind nil or ten2hundred. Max numerical bet of 5.
             if distr < 19:
                 bet = BETS(betval)
@@ -28,6 +28,8 @@ class Derp:
                 bet = BETS.NIL
             elif distr == 20:
                 bet = BETS.TTH
+
+            bet = BETS(betval)
             success = self.game.playerAction(player, PLAYER_ACTIONS.BET, bet)
 
         return success
@@ -50,17 +52,18 @@ class Derp:
             self.makeBet(player)
 
         elif self.game.state == GAME_STATES.PLAYING:
-            print('fug')
             self.playCard(player)
         else:
             pass
-    def showSomeHussle(self):
+    def showSomeHustle(self):
         while not self.game.state == GAME_STATES.POSTGAME:
             if self.limited:
                 if self.actions >= self.limiter:
+                    self.actions = 0
                     break
 
             self.slerp()
+            self.actions = self.actions + 1
 
 if __name__ == "__main__":
     u1 = Player("1", "Louis")
@@ -74,4 +77,4 @@ if __name__ == "__main__":
     g = Game([t1, t2], 300)
 
     BasedGodDerp = Derp(g)
-    BasedGodDerp.showSomeHussle()
+    BasedGodDerp.showSomeHustle()
