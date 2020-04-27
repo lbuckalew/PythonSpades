@@ -328,7 +328,7 @@ class Game:
                 else:
                     s = "{} tried to deal, but it isn't their turn... awkward.".format(str(player))
                     self.notify(s)
-                    return 0
+                    return 0  
             else:
                 s = "{} tried to {} during the {} phase. You can't be doing that.".format(str(player), action.name, self.state.name)
                 self.notify(s)
@@ -402,8 +402,7 @@ class Game:
         elif output == dict:
             d = {
                 t1.name: {"score": t1.score, "overbooks": t1.overbooks},
-                t2.name: {"score": t2.score, "overbooks": t2.overbooks},
-                "Team objects": self.teams
+                t2.name: {"score": t2.score, "overbooks": t2.overbooks}
             }     
             return d
 
@@ -422,7 +421,7 @@ class Game:
             s = s.format(player.name, dealer.name, self.spadesBroken)
             return s
         elif output == dict:
-            return {"Turn": player.name, "Dealer": dealer, "SpadesBroken": self.spadesBroken}
+            return {"turn": player.name, "dealer": dealer, "spades_broken": self.spadesBroken}
 
     def getPileInfo(self, output=str):
         if output == str:
@@ -437,7 +436,7 @@ class Game:
             s = ""
             for c in self.pile:
                 s = s + str(c)           
-            d = {"PileString": s, "CardObjects": self.pile}
+            d = {"cards": self.pile}
             return d
 
     def getBettingInfo(self, output=str):
@@ -451,23 +450,12 @@ class Game:
                 s = s + temp
             return s
         elif output == dict:
-            d = {}
+            d = {"teams": self.teams}
+            return d
 
     def getWinnerInfo(self, output=str):
         winner = self.teams[0]
         if self.teams[1].score > self.teams[0].score:
             winner = self.teams[1]
-        s = "*~~~**~~~**~~~**~~~**~~~**~~~**~~~**~~~**~~~**~~~*\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-        s = s + "{} won with {} pts!!!".format(winner.name, winner.score)
-        s = s + """
-         _____
-        |A .  | _____
-        | /.\ ||A ^  | _____
-        |(_._)|| / \ ||A _  | _____
-        |  |  || \ / || ( ) ||A_ _ |
-        |____V||  .  ||(_'_)||( v )|
-               |____V||  |  || \ / |
-                      |____V||  .  |
-                             |____V|\n"""
-        s = s + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n*~~~**~~~**~~~**~~~**~~~**~~~**~~~**~~~**~~~**~~~*\n"
+        s = "{} won with {} pts!!!\n".format(winner.name, winner.score)
         return s
