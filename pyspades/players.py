@@ -1,6 +1,6 @@
 from enum import Enum
 
-from game import BETS, IS_NUMERICAL_BET
+from pyspades.game import BETS, IS_NUMERICAL_BET
 
 class Player:
     def __init__(self, id, name):

@@ -1,6 +1,6 @@
 from enum import Enum
 
-from cards import Card, Deck, CARD_SUITS, CARD_RANKS
+from pyspades.cards import Card, Deck, CARD_SUITS, CARD_RANKS
 
 class GAME_STATES(Enum):
     PREGAME = 1
@@ -146,7 +146,8 @@ class Game:
         for t in self.teams:
             for p in t.players:
                 p.advertiseHand()
-        self.notify("Cards have been dealt, now it's time to bet.")
+        s = "Cards have been dealt, now it's {}'s turn to bet.".format(self.getPlayerByTurnOrder(self.whoseTurn))
+        self.notify(s)
         self.requestStateChange(GAME_STATES.BETTING)
         return 1
 
@@ -171,14 +172,19 @@ class Game:
                     if not p.id == player.id:
                         partner = p
                 self.sumBets = self.sumBets + 10 - partner.getBetNumerical()
-
             self.numBets = self.numBets + 1
             self.incrementWhoseTurn()
-            s = "{} bets {}. The bet total is now {}".format(str(player), bet.value, self.sumBets)
-            self.notify(s)
+            s = "{} bets {}, and the total bet is {}. It's {}'s turn to "
+            s = s.format(str(player), bet.value, self.sumBets, self.getPlayerByTurnOrder(self.whoseTurn))
+
             # Leave betting phase if last bet
             if self.numBets >= 4:
                 self.requestStateChange(GAME_STATES.PLAYING)
+                s = s + "play."
+            else:
+                s = s + "bet."
+
+            self.notify(s)
             return 1
         return 0
 
@@ -216,10 +222,12 @@ class Game:
             self.pile.append(player.playCard(cardIndex))
             self.incrementWhoseTurn()
             player.advertiseHand()
-        self.notify(s)
         # If the last card in the pile was just played, evaluate the pile
         if len(self.pile) == 4:
             self.evaluatePile()
+        else:
+            s = s + " It's {}'s turn to play.".format(self.getPlayerByTurnOrder(self.whoseTurn))
+            self.notify(s)
         return success
 
     def evaluatePile(self):
@@ -250,12 +258,13 @@ class Game:
         self.setWhoseTurn(winner)
         # Fix state for new round
         self.newRound()
-        # Notify
-        s = "{} won the round with the {}.".format(str(winner), str(winningCard))
-        self.notify(s)
         # Check if it was the last round before scoring books
         if self.round > 13:
             self.evaluateBooks()
+            self.notification = "{} won the round with the {}.".format(str(winner), str(winningCard)) + self.notification
+        else:
+            s = "{} won the round with the {}, it's their turn to play.".format(str(winner), str(winningCard))
+            self.notify(s)
 
     def evaluateBooks(self):
         # Evaluate scores and add to teams
@@ -308,6 +317,7 @@ class Game:
             self.notify("Evaluationg books.")
             self.requestStateChange(GAME_STATES.DEALING)
         else:
+            self.notify(self.getWinnerInfo())
             self.requestStateChange(GAME_STATES.POSTGAME)
 
     def playerAction(self, player, action, actionArg):
@@ -372,7 +382,6 @@ class Game:
             gameOver = (self.teams[0].score >= self.maxScore) or (self.teams[1].score >= self.maxScore)
             if gameOver:
                 self.state = requestedState
-                self.advertiseWinner()
         return 0
 
     def notify(self, msg):
@@ -380,50 +389,71 @@ class Game:
         self.advertiseState()
 
     def advertiseState(self):
-        s = self.scoreInfoToString() + self.notificationInfoToString() + self.turnInfoToString() + self.pileInfoToString() + self.bettingInfoToString()
+        s = self.getScoreInfo() + self.getNotificationInfo() + self.getTurnInfo() + self.getPileInfo() + self.getBettingInfo()
         print(s)
 
-    def advertiseWinner(self):
-        print(self.winnerInfoToString())
-
-    def scoreInfoToString(self):
+    def getScoreInfo(self, output=str):
         t1 = self.teams[0]
         t2 = self.teams[1]
-        s = "****************************************\n"
-        s = s + "{} [{}|{})\t---VS---\t{} [{}|{})\n".format(t1.name, t1.score, t1.overbooks, t2.name, t2.score, t2.overbooks)
-        return s        
+        if output == str:
+            s = "****************************************\n"
+            s = s + "{} [{}|{})\t---VS---\t{} [{}|{})\n".format(t1.name, t1.score, t1.overbooks, t2.name, t2.score, t2.overbooks)
+            return s
+        elif output == dict:
+            d = {
+                t1.name: {"score": t1.score, "overbooks": t1.overbooks},
+                t2.name: {"score": t2.score, "overbooks": t2.overbooks},
+                "Team objects": self.teams
+            }     
+            return d
 
-    def notificationInfoToString(self):
-        s = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n{}\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n".format(self.notification)
-        return s
+    def getNotificationInfo(self, output=str):
+        if output == str:
+            s = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n{}\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n".format(self.notification)
+            return s
+        elif output == dict:
+            return {"Notification": self.notification}
 
-    def turnInfoToString(self):
-        s = "Turn: " + str(self.getPlayerByTurnOrder(self.whoseTurn)) + "\t"
-        s = s + "Dealer: " + str(self.getPlayerByTurnOrder(self.dealer)) + "\t"
-        s = s + "Spades Broken?: " + str(self.spadesBroken) + "\n"
-        s = s + "----------------------------------------\n"
-        return s
+    def getTurnInfo(self, output=str):
+        player = self.getPlayerByTurnOrder(self.whoseTurn)
+        dealer = self.getPlayerByTurnOrder(self.dealer)
+        if output == str:
+            s = "Turn: {}\tDealer: {}\tSpades Broken?: {}\n----------------------------------------\n"
+            s = s.format(player.name, dealer.name, self.spadesBroken)
+            return s
+        elif output == dict:
+            return {"Turn": player.name, "Dealer": dealer, "SpadesBroken": self.spadesBroken}
 
-    def pileInfoToString(self):
-        s = "Current pile: "
-        for c in self.pile:
-            s = s + str(c)
-        if len(self.pile) == 0:
-            s = s + "None yet."
-        s = s + "\n----------------------------------------\n"
-        return s
+    def getPileInfo(self, output=str):
+        if output == str:
+            s = "Current pile: "
+            for c in self.pile:
+                s = s + str(c)
+            if len(self.pile) == 0:
+                s = s + "None yet."
+            s = s + "\n----------------------------------------\n"
+            return s
+        elif output == dict:
+            s = ""
+            for c in self.pile:
+                s = s + str(c)           
+            d = {"PileString": s, "CardObjects": self.pile}
+            return d
 
-    def bettingInfoToString(self):
-        s = ""
-        for t in self.teams:
-            p1 = t.players[0]
-            p2 = t.players[1]
-            temp = "{} books ({}/{}) >>> {}({}/{}) & {}({}/{})\n----------------------------------------\n"
-            temp = temp.format(t.name, t.getNumBooks(), t.getBetNumerical(), p1.name, p1.getNumBooks(), p1.bet.name, p2.name, p2.getNumBooks(), p2.bet.name)
-            s = s + temp
-        return s
+    def getBettingInfo(self, output=str):
+        if output == str:
+            s = ""
+            for t in self.teams:
+                p1 = t.players[0]
+                p2 = t.players[1]
+                temp = "{} books ({}/{}) >>> {}({}/{}) & {}({}/{})\n----------------------------------------\n"
+                temp = temp.format(t.name, t.getNumBooks(), t.getBetNumerical(), p1.name, p1.getNumBooks(), p1.bet.name, p2.name, p2.getNumBooks(), p2.bet.name)
+                s = s + temp
+            return s
+        elif output == dict:
+            d = {}
 
-    def winnerInfoToString(self):
+    def getWinnerInfo(self, output=str):
         winner = self.teams[0]
         if self.teams[1].score > self.teams[0].score:
             winner = self.teams[1]
