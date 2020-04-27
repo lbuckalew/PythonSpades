@@ -8,6 +8,7 @@ class CARD_SUITS(Enum):
     DIAMOND = 2
     HEART = 3
     SPADE = 4
+    NONE = 5
 
 class CARD_RANKS(Enum):
     TWO = 1

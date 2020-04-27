@@ -37,10 +37,14 @@ def IS_NUMERICAL_BET(bet):
     return bet.value < 14
     
 class Game:
-    def __init__(self, teams, maxScore):
+    def __init__(self, teams, maxScore, firstDealer=1):
         self.state = GAME_STATES.PREGAME
         self.maxScore = maxScore
         self.teams = teams
+        if firstDealer in [1,2,3,4]:
+            self.firstDealer = firstDealer
+        else:
+            self.firstDealer = 1
         self.reset()
         self.assignPlayerTurns()
         self.start()
@@ -52,10 +56,13 @@ class Game:
         self.requestStateChange(GAME_STATES.DEALING)
 
     def reset(self):
+        self.dealer = self.firstDealer # dealer is first in rotation
+        turn = self.dealer + 1 # person after dealer bets and plays right after dealer
+        if turn > 4:
+            turn = turn - 4
+        self.whoseTurn = turn
         self.numBets = 0 # number of bets placed in current set (reset to 0 after score tally)
         self.sumBets = 0 # sum of bets players made in current set (13 total books possible)
-        self.dealer = 1 # dealer is first in rotation
-        self.whoseTurn = 2 # person after dealer bets and plays right after dealer
         self.round = 1 # tally of round number for current set (13 total rounds per scored set)
         self.spadesBroken = False
         self.newPile() # pile is list of up to 4 cards currently in play
@@ -90,7 +97,7 @@ class Game:
 
     def newPile(self):
         self.pile = []
-        self.pileSuit = 0
+        self.pileSuit = CARD_SUITS.NONE
 
     # Set game state for new round of 4 cards
     def newRound(self):
@@ -145,6 +152,7 @@ class Game:
         # Notify all players of hands
         for t in self.teams:
             for p in t.players:
+                p.sortHand()
                 p.advertiseHand()
         s = "Cards have been dealt, now it's {}'s turn to bet.".format(self.getPlayerByTurnOrder(self.whoseTurn))
         self.notify(s)
@@ -190,27 +198,20 @@ class Game:
 
     def playToPile(self, player, cardIndex):
         card = player.previewCard(cardIndex)
-        # If first card played
-        if len(self.pile) == 0:
-            if (card.suit == CARD_SUITS.SPADE) and (not self.spadesBroken):
-                s = "{} tried to play a {}, but spades have not been broken yet. Try again, dingus.".format(str(player), str(card))
-                success = False
-            else:
-                self.pileSuit = card.suit
-                success = True
-        # If not first card played
+        # If card is right suit
+        if card.suit == self.pileSuit:
+            success = True
         else:
-            # If card is right suit
-            if card.suit == self.pileSuit:
+            # If they dont have trump suit let them play
+            numOfSuit = player.hasSuit(self.pileSuit)
+            if numOfSuit == 0:
                 success = True
+                # If they are the first in the pile let them play
+                if len(self.pile) == 0:
+                    self.pileSuit = card.suit
             else:
-                # If they dont have trump suit let them play
-                numOfSuit = player.hasSuit(self.pileSuit)
-                if numOfSuit == 0:
-                    success = True
-                else:
-                    s = "{} tried to play the {}, but is not allowed. Naughty, naughty!!".format(str(player), str(card))
-                    success = False
+                s = "{} tried to play the {}, but is not allowed. Naughty, naughty!!".format(str(player), str(card))
+                success = False
         # If they are allowed to play, then add to pile and show player their hand
         if success:
             s = "{} played the {}.".format(str(player), str(card))
@@ -218,6 +219,7 @@ class Game:
             if card.suit == CARD_SUITS.SPADE:
                 if self.spadesBroken == False:
                     self.spadesBroken = True
+                    self.pileSuit = card.suit
                     s = s + " SPADES HAVE BEEN BROKEN!"
             self.pile.append(player.playCard(cardIndex))
             self.incrementWhoseTurn()

@@ -62,6 +62,10 @@ class Player:
         s = s + "\n"
         return s
 
+    def sortHand(self):
+        pass
+        self.hand.sort(key=lambda c: c.id, reverse=False)
+
     def getBetNumerical(self):
         bet = 0
         if IS_NUMERICAL_BET(self.bet):
@@ -120,3 +124,4 @@ class Team:
     def reset(self):
         self.newSet()
         self.score = 0
+        self.overbooks = 0
