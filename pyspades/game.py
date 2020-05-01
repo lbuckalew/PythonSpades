@@ -219,7 +219,6 @@ class Game:
             if card.suit == CARD_SUITS.SPADE:
                 if self.spadesBroken == False:
                     self.spadesBroken = True
-                    self.pileSuit = card.suit
                     s = s + " SPADES HAVE BEEN BROKEN!"
             self.pile.append(player.playCard(cardIndex))
             self.incrementWhoseTurn()
@@ -316,7 +315,7 @@ class Game:
         if not gameOver:
             # Reset game state for next set
             self.newSet()
-            self.notify("Evaluationg books.")
+            self.notify(" Evaluationg books...")
             self.requestStateChange(GAME_STATES.DEALING)
         else:
             self.notify(self.getWinnerInfo())
