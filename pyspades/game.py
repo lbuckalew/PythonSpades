@@ -113,6 +113,12 @@ class Game:
         # clear player books and hand
         for t in self.teams:
             t.newSet()
+        # Set turn and reset spades broken
+        self.spadesBroken = False
+        if self.dealer == 4:
+            self.whoseTurn = 1
+        else:
+            self.whoseTurn = self.dealer + 1
 
     def incrementDealer(self):
         if self.dealer == 4:
