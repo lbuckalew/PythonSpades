@@ -229,12 +229,11 @@ class Game:
             self.pile.append(player.playCard(cardIndex))
             self.incrementWhoseTurn()
             player.advertiseHand()
+        s = s + " It's {}'s turn to play.".format(self.getPlayerByTurnOrder(self.whoseTurn))
+        self.notify(s)
         # If the last card in the pile was just played, evaluate the pile
         if len(self.pile) == 4:
             self.evaluatePile()
-        else:
-            s = s + " It's {}'s turn to play.".format(self.getPlayerByTurnOrder(self.whoseTurn))
-            self.notify(s)
         return success
 
     def evaluatePile(self):
