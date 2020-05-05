@@ -169,7 +169,7 @@ class Game:
         # Check if far enough behind for special bets
         if (bet == BETS.TTH) or (bet == BETS.BLNIL):
             diff = self.getScoreDifference(player.teamIndex)
-            if diff >= -100:
+            if diff > -100:
                 s = "{} tried to bet {}, but is only {} pts behind.".format(player.name, bet.name, diff)
                 self.notify(s)
                 return 0
