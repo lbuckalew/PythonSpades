@@ -170,7 +170,7 @@ class Game:
         if (bet == BETS.TTH) or (bet == BETS.BLNIL):
             diff = self.getScoreDifference(player.teamIndex)
             if diff >= -100:
-                s = "{} tried to bet {}, but is only {} pts behind."
+                s = "{} tried to bet {}, but is only {} pts behind.".format(player.name, bet.name, diff)
                 self.notify(s)
                 return 0
         # If allowed to make bet
@@ -189,7 +189,7 @@ class Game:
             self.numBets = self.numBets + 1
             self.incrementWhoseTurn()
             s = "{} bets {}, and the total bet is {}. It's {}'s turn to "
-            s = s.format(str(player), bet.value, self.sumBets, self.getPlayerByTurnOrder(self.whoseTurn))
+            s = s.format(str(player), bet.name, self.sumBets, self.getPlayerByTurnOrder(self.whoseTurn))
 
             # Leave betting phase if last bet
             if self.numBets >= 4:
